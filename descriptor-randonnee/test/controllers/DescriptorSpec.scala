@@ -14,6 +14,7 @@ import play.api.test.Helpers.stubControllerComponents
 import scala.concurrent._
 import scala.concurrent.duration._
 
+import akka.actor.ActorSystem
 
 class DescriptorSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,9 +38,20 @@ class DescriptorSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
               .apply(FakeRequest()) 
 
           val result = Await.result(myFuture, 10 seconds)
-          result.body mustBe Seq("une très longue description")
+          val res  = result.body.consumeData(new play.api.libs.concurrent.MaterializerProvider(ActorSystem()).get)
+          res.map{
+            case x => x.decodeString("UTF-8") mustBe Seq("une très longue description")
+          }
         }
       }
+
+
+      /*
+        Strict(
+          ByteString(),
+          Some(application/json)
+          )
+      */
 
      /* val wsClient = app.injector.instanceOf[WSClient]
       implicit val ec = app.injector.instanceOf[ExecutionContext]

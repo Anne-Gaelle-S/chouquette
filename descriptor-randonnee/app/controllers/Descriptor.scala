@@ -24,7 +24,7 @@ class Descriptor @Inject()(
 
   def validator(response: WSResponse): Option[Description] = {
     if(response.status == play.api.http.Status.OK)
-      Json.parse(response.body).validate[Seq[Description]].asOpt.flatMap(_.headOption)
+      response.json.validate[Seq[Description]].asOpt.flatMap(_.headOption)
     else None
   } 
 
