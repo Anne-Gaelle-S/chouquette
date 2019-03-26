@@ -8,6 +8,10 @@ import play.api.http.Status
 import play.api.libs.json._
 import play.api.libs.ws._ // pour faire les requetes http (le client http quoi)
 
+// Service 1 : 
+// Récupérer un texte de randonnée via l’API ​ https://api.camptocamp.org/outings/​ 
+// ou son extraction ​ https://choucas.blqn.fr/data/outing/
+
 case class Description(description: String)
 
 object Description {
