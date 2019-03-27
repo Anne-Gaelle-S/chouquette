@@ -1,31 +1,54 @@
 package controllers
 
-// import javax.inject.Inject
-// import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import javax.inject.Inject
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 import play.api._
 import play.api.mvc._
+import play.api.libs.ws._
 import play.api.libs.json._
+import play.api.http.HttpEntity
 
-import models.Product
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl._
+import akka.util.ByteString
 
-// object Extractor {
-//   implicit val locationName = Extractor("")
-// }
+// import models._
 
-class Extractor extends Controller {
+case class ExtractedText( text: String )
 
-  def semanticText(text: String) = ???
+object ExtractedText {
+  implicit val extractedText = Json.reads[ExtractedText]
+}
 
-  def retreive(text: String) = ???
- 
-  // JSON response
-  def extract(text: String) = Action {
-    val text = Product(1, "GOOD")
-    Ok(Json.toJson(text))
+class Extractor @Inject() (
+  ws: WSClient // for the http request
+)(
+  implicit ec: ExecutionContext // for the http response
+) extends Controller {
+
+  def validator(response: WSResponse): Option[ExtractedText] = {
+    if(response.status == play.api.http.Status.OK)
+      response.json.validate[Seq[ExtractedText]].asOpt.flatMap(_.headOption)
+    else None
+  } 
+
+  def extract(textToAnnotate: String) = Action.async {
+    ws
+      .url("http://icc.pau.eisti.fr/rest/annotate?text="+textToAnnotate)
+      .get()
+      .map(validator)
+      .map {
+        case Some(extractedText) => Ok(Json.toJson(extractedText.text))
+        case None => Ok("Result not found")
+      }    
   }
-  // Action.async {
-  //   semanticText(text).retreive()
-  // }
 
 }
+
+
+
