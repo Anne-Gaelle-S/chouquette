@@ -22,7 +22,8 @@ import akka.util.ByteString
 case class ExtractedText( text: String )
 
 object ExtractedText {
-  implicit val extractedText = Json.reads[ExtractedText]
+  implicit val extractedTextReads = Json.reads[ExtractedText]
+  implicit val extractedTextWrites = Json.writes[ExtractedText]
 }
 
 class Extractor @Inject() (
@@ -31,21 +32,25 @@ class Extractor @Inject() (
   implicit ec: ExecutionContext // for the http response
 ) extends Controller {
 
-  def validator(response: WSResponse): Option[ExtractedText] = {
-    if(response.status == play.api.http.Status.OK)
-      response.json.validate[Seq[ExtractedText]].asOpt.flatMap(_.headOption)
+  def validator(response: WSResponse): Option[Seq[JsValue]] = {
+    if(response.status == play.api.http.Status.OK) {
+      Some( (response.json \\ "Resources") )
+    }
     else None
   } 
 
   def extract(textToAnnotate: String) = Action.async {
     ws
       .url("http://icc.pau.eisti.fr/rest/annotate?text="+textToAnnotate)
+      .withHeaders("Accept" -> "application/json")
       .get()
       .map(validator)
       .map {
-        case Some(extractedText) => Ok(Json.toJson(extractedText.text))
-        case None => Ok("Result not found")
-      }    
+        case Some(extractedText) => {
+          Ok( extractedText.flatMap( semanticText => (semanticText \\ "@URI") ).toString ) 
+        }
+        case None => NotFound("Not found")
+      }
   }
 
 }
