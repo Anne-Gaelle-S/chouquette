@@ -47,13 +47,18 @@ class Extractor @Inject() (
       .map(validator)
       .map {
         case Some(extractedText) => {
-          Ok( extractedText.flatMap( semanticText => (semanticText \\ "@URI") ).toString ) 
+          println(extractedText)
+          Ok( extractedText.flatMap( semanticText => (semanticText \\ "@URI") ).toString )
+          // Ok( extractedText.flatMap(
+          //    semanticText => (
+          //      ((semanticText \\ "@URI").toString),((semanticText \\ "@types").toString)
+          //      ) 
+          //   ).toString )
+          // Ok( extractedText.flatMap( semanticText => (semanticText) ).toString ) 
+          //Il faudrait renvoyer une liste de couple, peut-être ?
         }
         case None => NotFound("Not found")
       }
   }
 
 }
-
-
-
