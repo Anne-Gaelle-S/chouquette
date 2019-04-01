@@ -32,9 +32,9 @@ class Extractor @Inject() (
   implicit ec: ExecutionContext // for the http response
 ) extends Controller {
 
-  def validator(response: WSResponse): Option[Seq[JsValue]] = {
+  def validator(response: WSResponse): Option[JsValue] = {
     if(response.status == play.api.http.Status.OK) {
-      Some( (response.json \\ "Resources") )
+      Some( Json.toJson(response.json \\ "@surfaceForm") )
     }
     else None
   } 
@@ -47,15 +47,7 @@ class Extractor @Inject() (
       .map(validator)
       .map {
         case Some(extractedText) => {
-          println(extractedText)
-          Ok( extractedText.flatMap( semanticText => (semanticText \\ "@URI") ).toString )
-          // Ok( extractedText.flatMap(
-          //    semanticText => (
-          //      ((semanticText \\ "@URI").toString),((semanticText \\ "@types").toString)
-          //      ) 
-          //   ).toString )
-          // Ok( extractedText.flatMap( semanticText => (semanticText) ).toString ) 
-          //Il faudrait renvoyer une liste de couple, peut-être ?
+          Ok(extractedText)
         }
         case None => NotFound("Not found")
       }
