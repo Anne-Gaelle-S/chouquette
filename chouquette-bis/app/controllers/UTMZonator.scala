@@ -28,59 +28,59 @@ object UTMZone {
   implicit val extractedTextWrites = Json.writes[ExtractedText]
 }
 
-case class Coords(long: Double, lat: Double)
+case class Coords(lat: Double, long: Double)
 object Coords {
   implicit val coordsReads: Reads[Coords] = (
-    (JsPath \ "long").read[Double] and
-    (JsPath \ "lat").read[Double]
+    (JsPath \ "lat").read[Double] and
+    (JsPath \ "long").read[Double]
   )(Coords.apply _)
 }
 
+
 class UTMZonator @Inject() (
+  cc: ControllerComponents,
   ws: WSClient // for the http request
 )(
   implicit ec: ExecutionContext // for the http response
-) extends Controller {
+) extends AbstractController(cc) {
 
   def validatorJsValue(coord: String): JsValue = {
     return (Json.parse(coord));
   }
 
-  def zonatora = Action(parse.json) {res => {
+  def zonator = Action(parse.json) { result => {
     println("POST REQUEST")
-    val optionOfCoords = res.body.validate[Seq[Coords]].asOpt
+    // val optionOfCoords = res.body.validate[Seq[Coords]].asOpt
     // println(optionOfCoords.map(x => Ok(x.toString)))
-    optionOfCoords.map( x => Ok(x.toString) ).getOrElse(BadRequest("Mauvaise requete... "))
+    result.body
+      .validate[Seq[Coords]]
+      .asOpt
+      .map( coords => utmTransformator(coords) ) // Ok(x.toString)
+      .getOrElse(BadRequest("Mauvaise requete... "))
+
+    // Ok("Ca marche")
   }}
 
-  def zonator(coordonnees: String) = Action.async {
-    println("-------------------------------------------");
-    // val coordJson = validatorJsValue(coordonnees);
-    // println(coordJson);
-    
-    // val latReads: Reads[Coords] = (JsPath \ "lat").read[Coords]
-    // val latResult = coordJson.validate[Seq[Coords]]
-    // latResult match {
-    //   case s: JsSuccess[Coords] => println("Lat: " + s.get)
-    //   case e: JsError => println("Errors: " + JsError.toJson(e).toString() +"\n"+e)
-    // }
+  def utmTransformator(coordonnees: Seq[Coords]) = {
+    println("-------------------------------------------")
+    println(coordonnees)
+    println("~~~~~~~~~")
+    coordonnees.map( (coord) => {
+      println(coord.lat+"  -   "+coord.long)
+      ws.url("https://api.opencagedata.com/geocode/v1/json?key=4e76f5429883420b92d7e90569089f7c&q="+coord.lat+"%2C"+coord.long+"&pretty=1")
+        .withHttpHeaders("Accept" -> "application/json")
+        .get()
+        .map( (res) => {
+          println("RESULTTAAAAT:")
+          println(res)
+          val json = Json.parse(res.body)
+          println( json \\ "MGRS")
+          // res
+        })
+    })
 
-    println("-------------------------------------------");
-    println("-------------------------------------------");
-
-    ws
-      .url("https://www.latlong.net/c/?lat=35.000000&long=600.000000")
-      .withHeaders("Accept" -> "application/json")
-      .get()
-      .map((res) => {
-        // println("------------------------------------------------------------------");
-        // println("RESULTTAAAAT:");
-        // println(res);
-        // println(res.body);
-        Ok(coordonnees);
-      }) 
+    Ok(coordonnees.toString)
   }
-
 }
 
 // API Key : 4e76f5429883420b92d7e90569089f7c
