@@ -1,4 +1,4 @@
-GET http://localhost:9002 HTTP/1.1
+GET http://localhost:9000 HTTP/1.1
 
 
 # Ctrl alt R
@@ -6,7 +6,7 @@ GET http://localhost:9002 HTTP/1.1
 #
 
 ###
-POST http://localhost:9002/geolocalise
+POST http://localhost:9001/geolocalise
 content-type: application/json
 
 ["Pau","Toulouse","Lyon"]
