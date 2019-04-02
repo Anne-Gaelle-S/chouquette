@@ -12,7 +12,7 @@ services:
   gdal2tiles2hdfs:
     build: .
     image: gdal2tiles2hdfs:latest
-    hostname: scalapi
+    hostname: gdal2tiles2hdfs
     networks:
       - gdal2tiles2hdfs
     ports:

@@ -1,5 +1,22 @@
 # gdal2tiles2hdfs
 
+## Usage
+
+### Production
+
+    docker-compose -f docker-compose.yml up
+
+Service avaible at: http://localhost:51264
+
+
+## Development
+
+    docker-compose up
+    docker attach gdal2tiles2hdfs # sbt shell
+
+Service avaible at: http://localhost:51264
+
+
 ## Routes
 
 ### `POST /gdal2tiles2hdfs`
