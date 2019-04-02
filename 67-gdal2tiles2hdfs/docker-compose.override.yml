@@ -1,0 +1,13 @@
+version: '3'
+
+# development
+
+services:
+  gdal2tiles2hdfs:
+    container_name: gdal2tiles2hdfs
+    volumes:
+      - .:/gdal2tiles2hdfs
+    working_dir: /gdal2tiles2hdfs
+    entrypoint: sbt
+    stdin_open: true
+    tty: true

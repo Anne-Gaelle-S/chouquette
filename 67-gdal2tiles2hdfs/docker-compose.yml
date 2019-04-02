@@ -1,0 +1,19 @@
+version: '3'
+
+# production
+
+networks:
+  gdal2tiles2hdfs:
+    ipam:
+      config:
+        - subnet: 10.42.96.0/24
+
+services:
+  gdal2tiles2hdfs:
+    build: .
+    image: gdal2tiles2hdfs:latest
+    hostname: scalapi
+    networks:
+      - gdal2tiles2hdfs
+    ports:
+      - 51264:9000
