@@ -11,4 +11,4 @@ GET     /extract                    controllers.Extractor.extract(text: String)
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
 POST    /zonator                    controllers.UTMZonator.zonator
-POST    /geolocalise                controllers.Geolocalisator.geolocaliseReq
+POST    /geolocalise                controllers.Geolocalisator.geolocalise

@@ -27,10 +27,11 @@ object ExtractedText {
 }
 
 class Extractor @Inject() (
+  cc: ControllerComponents,
   ws: WSClient // for the http request
 )(
   implicit ec: ExecutionContext // for the http response
-) extends Controller {
+) extends AbstractController(cc) {
 
   def validator(response: WSResponse): Option[JsValue] = {
     if(response.status == play.api.http.Status.OK) {
