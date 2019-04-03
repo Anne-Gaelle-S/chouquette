@@ -1,0 +1,26 @@
+GET http://localhost:9000 HTTP/1.1
+
+
+# Ctrl alt R
+# 
+#
+
+###
+POST http://localhost:9001/recupere
+content-type: application/json
+
+["31TEN"]
+
+
+###
+POST http://localhost:9001/recupereDate
+content-type: application/json
+
+{
+   "utm": "31TEN",
+   "startDateVal": "2016-10-05",
+   "completionDateVal": "2016-11-15"
+}
+
+
+###

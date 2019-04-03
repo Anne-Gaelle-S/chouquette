@@ -12,3 +12,5 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 
 POST    /zonator                    controllers.UTMZonator.zonator
 POST    /geolocalise                controllers.Geolocalisator.geolocalise
+POST    /recupere                   controllers.S2Recuperator.recupere
+POST    /recupereDate               controllers.S2Recuperator.recupereDate
