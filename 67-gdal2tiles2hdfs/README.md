@@ -22,7 +22,7 @@ Service avaible at: http://localhost:51264
 ### `POST /gdal2tiles2hdfs`
 
 *Request:*
-```json
+```jsonld
 {
     "url": string,     // url to download image from
     "hdfsPath": string // path to store to hdfs
@@ -34,9 +34,10 @@ Downloads `url` on in local file system, calls `gdal2tiles.py` on it and puts th
 *Response:*
 ```http
 Status: 202
-
+```
+```jsonld
 {
-    "status": string
+    "status": string // route where the status can be checked
 }
 ```
 
