@@ -14,13 +14,21 @@ import play.api.libs.functional.syntax._ // Combinator syntax
 import play.api.http.HttpEntity
 
 import akka.actor.ActorSystem
+import akka.stream.Materializer
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
+case class GeolocalisedText( var places: List[JsValue] )
+
+object GeolocalisedText {
+  implicit val GeolocalisedTextReads = Json.reads[GeolocalisedText]
+  implicit val GeolocalisedTextWrites = Json.writes[GeolocalisedText]
+}
 
 class Geolocalisator @Inject() (
-    cc: ControllerComponents
+    cc: ControllerComponents,
+    mat: Materializer
 ) extends AbstractController(cc) {
 
     val url1 = "https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=select+%3Fplace+%3Fpoint+where+%7B+%0D%0A%3Fplace+rdf%3Atype+dbo%3APlace+.+%0D%0A%3Fplace+rdfs%3Alabel+%3FnomPlace+filter%28str%28%3FnomPlace%29%3D%22"
@@ -28,9 +36,9 @@ class Geolocalisator @Inject() (
     
     def getURL(url: String) = scala.io.Source.fromURL(url).mkString
 
-    def geolocaliseReq = Action(parse.json) {res => {
+    def geolocalise = Action(parse.json) {res => {
 
-        var resultat:List[JsValue] = List()
+        var resultat:GeolocalisedText = new GeolocalisedText(List())
 
         println("POST REQUEST")
 
@@ -51,11 +59,11 @@ class Geolocalisator @Inject() (
                 "long" -> coordinatesString(1).toDouble,
                 "lat" -> coordinatesString(0).toDouble
             )
-            resultat = resultat ::: List(coordinatesJson)
+            resultat.places = resultat.places ::: List(coordinatesJson)
         }
         ).getOrElse(BadRequest("Mauvaise requete... "))
         
-        // println(Json.toJson(resultat))
+        // println(Json.toJson(resultat).getClass)
         Ok(Json.toJson(resultat))
     }}
 
