@@ -44,28 +44,8 @@ class DescriptorSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
           }
         }
       }
-
-
-      /*
-        Strict(
-          ByteString(),
-          Some(application/json)
-          )
-      */
-
-     /* val wsClient = app.injector.instanceOf[WSClient]
-      implicit val ec = app.injector.instanceOf[ExecutionContext]
-      val result = new Descriptor(stubControllerComponents(), wsClient)
-        .requestMe(502272)
-        .apply(FakeRequest())
-      
-      val bodyText: String = contentAsString(result)
-
-      bodyText mustBe "3"*/
-
     } 
   }
-
 }
 
 

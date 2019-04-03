@@ -27,66 +27,43 @@ object GeolocalisedText {
 }
 
 class Geolocalisator @Inject() (
-    cc: ControllerComponents,
-    mat: Materializer
+  cc: ControllerComponents,
+  mat: Materializer
 ) extends AbstractController(cc) {
 
-    val url1 = "https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=select+%3Fplace+%3Fpoint+where+%7B+%0D%0A%3Fplace+rdf%3Atype+dbo%3APlace+.+%0D%0A%3Fplace+rdfs%3Alabel+%3FnomPlace+filter%28str%28%3FnomPlace%29%3D%22"
-    val url2 = "%22%29+.+%0D%0A%3Fplace+georss%3Apoint+%3Fpoint%0D%0A%7D+limit+1&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+  val url1 = "https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=select+%3Fplace+%3Fpoint+where+%7B+%0D%0A%3Fplace+rdf%3Atype+dbo%3APlace+.+%0D%0A%3Fplace+rdfs%3Alabel+%3FnomPlace+filter%28str%28%3FnomPlace%29%3D%22"
+  val url2 = "%22%29+.+%0D%0A%3Fplace+georss%3Apoint+%3Fpoint%0D%0A%7D+limit+1&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
     
-    def getURL(url: String) = scala.io.Source.fromURL(url).mkString
+  def getURL(url: String) = scala.io.Source.fromURL(url).mkString
 
-    def geolocalise = Action(parse.json) {res => {
+  def geolocalise = Action(parse.json) {res => {
 
-        var resultat:GeolocalisedText = new GeolocalisedText(List())
+    var resultat:GeolocalisedText = new GeolocalisedText(List())
 
-        println("POST REQUEST")
+    println("POST REQUEST")
 
-        val optionOfString = res.body.validate[Seq[String]].asOpt
+    val optionOfString = res.body.validate[Seq[String]].asOpt
 
-        optionOfString.map( x => x.foreach { x =>
-            val coordinates = (
-                ((Json.parse(getURL(url1+x+url2)) \ "results" \ "bindings").get)
-                .head \ "point" \ "value"
-                ).get
+    optionOfString.map( x => x.foreach { x =>
+      val coordinates = (
+        ((Json.parse(getURL(url1+x+url2)) \ "results" \ "bindings").get).head \ "point" \ "value"
+      ).get
 
-            val coordinatesString = (coordinates.toString.substring(
-                1,
-                coordinates.toString.size-1
-            ).split(" "))
+      val coordinatesString = (coordinates.toString.substring(
+        1,
+        coordinates.toString.size-1
+      ).split(" "))
 
-            val coordinatesJson: JsValue = Json.obj(
-                "long" -> coordinatesString(1).toDouble,
-                "lat" -> coordinatesString(0).toDouble
-            )
-            resultat.places = resultat.places ::: List(coordinatesJson)
-        }
-        ).getOrElse(BadRequest("Mauvaise requete... "))
+      val coordinatesJson: JsValue = Json.obj(
+        "long" -> coordinatesString(1).toDouble,
+        "lat" -> coordinatesString(0).toDouble
+      )
+      resultat.places = resultat.places ::: List(coordinatesJson)
+
+    }).getOrElse(BadRequest("Mauvaise requete... "))
         
-        // println(Json.toJson(resultat).getClass)
+  	// println(Json.toJson(resultat).getClass)
         Ok(Json.toJson(resultat))
-    }}
-
+  }}
 }
 
-
-// Marche bien, mais pas de long/lat : 
-
-// select ?place ?point where { 
-// ?place rdf:type dbo:Place . 
-// ?place rdfs:label ?nomPlace filter(str(?nomPlace)="Toulouse") . 
-// ?place georss:point ?point
-// } limit 1 
-
-
-
-// Marche pas pour l'instant : 
-
-// prefix prop-fr: <http://fr.dbpedia.org/property/>
-
-// select ?place ?lat ?long where { 
-// ?place rdf:type dbo:Place . 
-// ?place rdfs:label ?nomPlace filter(str(?nomPlace)="Toulouse") . 
-// ?place prop-fr:latitude ?lat .
-// ?place prop-fr:longitude ?long
-// } limit 1 
