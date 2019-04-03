@@ -14,7 +14,6 @@ class HdfsPutter @Inject()()(
 ) extends HdfsPuttable {
 
   def putHdfs(hdfsPath: String)
-             (tilesPath: String)
-             (implicit ec: ExecutionContext): Future[String] = ???
+             (tilesPath: String): Future[String] = ???
 
 }

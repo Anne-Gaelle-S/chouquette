@@ -13,7 +13,6 @@ class Tiler @Inject()()(
   implicit ec: MyExecutionContext
 ) extends Tileable {
 
-  def gdal2Tiles(imagePath: String)
-                (implicit ec: ExecutionContext): Future[String] = ???
+  def gdal2Tiles(imagePath: String): Future[String] = ???
 
 }

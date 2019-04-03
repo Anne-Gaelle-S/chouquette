@@ -9,8 +9,13 @@ import com.google.inject.ImplementedBy
 
 
 @ImplementedBy(classOf[MyExecutionContextImpl])
-trait MyExecutionContext extends ExecutionContext
+trait MyExecutionContext extends ExecutionContext {
+  val system: ActorSystem
+}
 
 @Singleton
-class MyExecutionContextImpl @Inject()(system: ActorSystem)
-  extends CustomExecutionContext(system, "my.executor") with MyExecutionContext
+class MyExecutionContextImpl @Inject()(_system: ActorSystem)
+  extends CustomExecutionContext(_system, "my.executor")
+     with MyExecutionContext {
+  val system = _system
+}
