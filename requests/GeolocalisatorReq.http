@@ -1,0 +1,9 @@
+# Ctrl alt R
+#
+#
+
+###
+POST http://localhost:51264/geolocalise
+content-type: application/json
+
+["Pau","Toulouse","Lyon"]

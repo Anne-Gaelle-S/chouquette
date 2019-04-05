@@ -1,0 +1,19 @@
+# 1 - Descriptor
+GET   /requestMe/:id        chouquette.controllers.Descriptor.requestMe(id: Int)
+
+# 2 - Extractor
+POST  /extract              chouquette.controllers.Extractor.extract
+
+# 3 - Geolocalisator
+POST  /geolocalise          chouquette.controllers.Geolocalisator.geolocalise
+
+# 4 - UTMZonator
+POST  /zonator              chouquette.controllers.UTMZonator.zonator
+
+# 5 - S2Recuperator
+POST  /recupere             chouquette.controllers.S2Recuperator.recupere
+POST  /recupereDate         chouquette.controllers.S2Recuperator.recupereDate
+
+# 67 - gdal2tiles2hdfs
+GET   /gdal2tiles2hdfs      chouquette.controllers.TilesAndHdfs.gdal2tiles2hdfs
+GET   /status/:jobId        chouquette.controllers.TilesAndHdfs.status(jobId: String)

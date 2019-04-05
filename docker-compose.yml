@@ -1,0 +1,19 @@
+version: '3'
+
+# production
+
+networks:
+  chouquette:
+    ipam:
+      config:
+        - subnet: 10.42.96.0/24
+
+services:
+  chouquette:
+    build: .
+    image: chouquette:latest
+    hostname: chouquette
+    networks:
+      - chouquette
+    ports:
+      - 51264:9000

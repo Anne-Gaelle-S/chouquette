@@ -1,0 +1,13 @@
+version: '3'
+
+# development
+
+services:
+  chouquette:
+    container_name: chouquette
+    volumes:
+      - ./chouquette:/chouquette
+    working_dir: /chouquette
+    entrypoint: sbt
+    stdin_open: true
+    tty: true
