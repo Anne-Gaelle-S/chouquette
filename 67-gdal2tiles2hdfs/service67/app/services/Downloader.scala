@@ -28,11 +28,11 @@ class Downloader @Inject()(
   implicit val materializer = ActorMaterializer()(ec.system)
 
   // Future returns the path where the image was saved on local storage.
-  def downloadImage(url: String): Try[Future[String]] = {
+  def downloadImage(imageUrl: String): Try[Future[String]] = {
     val uuid = randomUUID().toString
     val strPath = s"tmp/img/$uuid.tiff"
     createFileIfNeeded(strPath)
-      .map(downloadToPath(url))
+      .map(downloadToPath(imageUrl))
       .map(_.map(_ => strPath))
   }
 

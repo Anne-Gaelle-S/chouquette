@@ -1,0 +1,2 @@
+GET   /gdal2tiles2hdfs      service67.controllers.TilesAndHdfs.gdal2tiles2hdfs
+GET   /status/:jobId        service67.controllers.TilesAndHdfs.status(jobId: String)

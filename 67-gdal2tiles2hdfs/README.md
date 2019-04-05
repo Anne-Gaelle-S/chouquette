@@ -24,12 +24,15 @@ Service avaible at: http://localhost:51264
 *Request:*
 ```jsonld
 {
-    "url": string,     // url to download image from
-    "hdfsPath": string // path to store to hdfs
+    "imageUrl": string, // url to download image from
+    "hdfsHost": string, // host for HDFS server
+    "hdfsUser": string, // user for HDFS server
+    "hdfsPass": string, // password for HDFS server
+    "hdfsPath": string, // path where tiles should be saved on HDFS server
 }
 ```
 
-Downloads `url` on in local file system, calls `gdal2tiles.py` on it and puts the result at `hdfsPath` on HDFS. Returns the route where the status can be checked.
+Downloads `imageUrl` on local file system, calls `gdal2tiles.py` on it, `scp` image and tiles on `hdfsUser@hdfsHost` (with `hdfsPass`), then puts it at `hdfsPath` on HDFS. Returns the route where the status can be checked.
 
 *Response:*
 ```http
@@ -42,9 +45,9 @@ Status: 202
 ```
 
 
-### `GET /status/<uuid>`
+### `GET /status/<jobId>`
 
-<!-- Returns the status for the submited `gdal2tiles2hdfs` job `uuid`.
+<!-- Returns the status for the submited `gdal2tiles2hdfs` job `jobId`.
 
 *Response:*
 ```http
