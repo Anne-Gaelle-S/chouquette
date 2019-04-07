@@ -27,11 +27,50 @@ Application avaible at: http://localhost:51264
 
 ### 2. Extractor
 
+#### `POST /extract`
+
+*Request:*
+```jsonld
+{
+    string // sentence where we want to extract the semantics words
+}
+```
+
+*Response:*
+```jsonld
+{
+    Array of string // array contening the semantics words extracted
+}
+```
 
 ---
 
 ### 3. Geolocalisator
 
+#### `POST /geolocalise`
+
+*Request:*
+```jsonld
+{
+    Array of string // array contening the semantics words extracted
+}
+```
+
+*Response:*
+```jsonld
+{
+    "places": [
+        {
+            "long": double // longitude of the first place
+            "lat": double // latitude of the first place
+        },
+        {
+            "long": double // longitude of the second place
+            "lat": double // latitude of the second place
+        }
+    ]
+}
+```
 
 ---
 
@@ -42,6 +81,41 @@ Application avaible at: http://localhost:51264
 
 ### 5. S2Recuperator
 
+#### `POST /recupere`
+
+By default, the `startDateVal` is 2016-11-05 and the `completionDateVal`is "2016-11-15". 
+
+*Request:*
+```jsonld
+{
+    Array of string // array contening the UTM zone
+}
+```
+
+*Response:*
+```jsonld
+{
+    "urls": [string] // array where the images urls are
+}
+```
+
+#### `POST /recupereDate`
+
+*Request:*
+```jsonld
+{
+    "utm": string, // the utm zone
+    "startDateVal": string, // the search on peps start from this date
+    "completionDateVal": string // the search on peps stop at this date
+}
+```
+
+*Response:*
+```jsonld
+{
+    "urls": [string] // array where the images urls are
+}
+```
 
 ---
 
