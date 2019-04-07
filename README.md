@@ -39,7 +39,7 @@ Application avaible at: http://localhost:51264
 *Response:*
 ```jsonld
 {
-    Array of string // array contening the semantics words extracted
+    [string] // array contening the semantics words extracted
 }
 ```
 
@@ -52,7 +52,7 @@ Application avaible at: http://localhost:51264
 *Request:*
 ```jsonld
 {
-    Array of string // array contening the semantics words extracted
+    [string] // array contening the semantics words extracted
 }
 ```
 
@@ -83,12 +83,12 @@ Application avaible at: http://localhost:51264
 
 #### `POST /recupere`
 
-By default, the `startDateVal` is 2016-11-05 and the `completionDateVal`is "2016-11-15". 
+By default, the `startDateVal` is 2016-11-05 and the `completionDateVal`is 2016-11-15. 
 
 *Request:*
 ```jsonld
 {
-    Array of string // array contening the UTM zone
+    [string] // array contening the UTM zone
 }
 ```
 
@@ -98,6 +98,8 @@ By default, the `startDateVal` is 2016-11-05 and the `completionDateVal`is "2016
     "urls": [string] // array where the images urls are
 }
 ```
+
+We can modify `startDateVal` and `completionDateVal` with the route /recupereDate. 
 
 #### `POST /recupereDate`
 
