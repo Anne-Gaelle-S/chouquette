@@ -10,7 +10,10 @@ import chouquette.controllers.JobQueueable
 
 
 @Singleton
-class JobQueuer(_queueMaxSize: Int=10) extends JobQueueable {
+@Inject
+class JobQueuer(_queueMaxSize: Int) extends JobQueueable {
+
+  @Inject def this() = this(10)
 
   require(_queueMaxSize > 0, "Queue max size must be positive")
 
