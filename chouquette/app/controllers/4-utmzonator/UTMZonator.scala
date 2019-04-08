@@ -1,4 +1,4 @@
-package controllers
+package chouquette.controllers
 
 import javax.inject.Inject
 
@@ -16,18 +16,12 @@ import play.api.libs.json.Reads._ // Custom validation helpers
 import play.api.libs.functional.syntax._ // Combinator syntax
 import play.api.http.HttpEntity
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl._
-import akka.util.ByteString
 
-// import models._
-
-case class UTMZone( text: String )
+case class UTMZone(text: String)
 
 object UTMZone {
-  implicit val extractedTextReads = Json.reads[ExtractedText]
-  implicit val extractedTextWrites = Json.writes[ExtractedText]
+  implicit val extractedTextReads = Json.reads[UTMZone]
+  implicit val extractedTextWrites = Json.writes[UTMZone]
 }
 
 case class Coords(lat: Double, long: Double)
@@ -39,12 +33,19 @@ object Coords {
 }
 
 
-class UTMZonator @Inject() (
+class UTMZonator(
   cc: ControllerComponents,
-  ws: WSClient // for the http request
+  ws: WSClient, // for the http request
+  baseUrl: String
 )(
   implicit ec: ExecutionContext // for the http response
 ) extends AbstractController(cc) {
+
+  @Inject def this(
+    cc: ControllerComponents,
+    ws: WSClient,
+    ec: ExecutionContext
+  ) = this(cc, ws, "https://api.opencagedata.com")(ec)
 
   def validatorJsValue(coord: String): JsValue = {
     return (Json.parse(coord));
@@ -55,13 +56,11 @@ class UTMZonator @Inject() (
       .validate[Seq[Coords]]
       .asOpt
       .map( coords => utmTransformator(coords) ) // Ok(x.toString)
-      .map(_.onComplete{
-        case Success(mgrsJson) => {
+      .map(_
+        .map(mgrsJson => {
           println("SUCCESS: "+extractUTMmajoritaire(mgrsJson))
           Ok(extractUTMmajoritaire(mgrsJson))
-        }
-        case Failure(err) => throw new IllegalStateException("Future failed")
-      })
+        }))
       // .getOrElse(BadRequest("Mauvaise requete... "))
 
     Ok("Ca marche")
@@ -69,10 +68,13 @@ class UTMZonator @Inject() (
 
   def utmTransformator(coordonnees: Seq[Coords]): Future[Seq[JsValue]] = {
     // println(coordonnees)
-    
+
     val utmsFutures: Seq[Future[JsValue]] = coordonnees
       .map( (coord) => {
-        ws.url("https://api.opencagedata.com/geocode/v1/json?key=4e76f5429883420b92d7e90569089f7c&q="+coord.lat+"%2C"+coord.long+"&pretty=1")
+        ws.url(baseUrl + "/geocode/v1/json"
+            + "?key=4e76f5429883420b92d7e90569089f7c"
+            + "&q=" + coord.lat+"%2C"+coord.long
+            + "&pretty=1")
           .withHttpHeaders("Accept" -> "application/json")
           .get()
           .map(result => {
@@ -104,7 +106,7 @@ class UTMZonator @Inject() (
     var nbOccurences = utms.foldLeft(startAcc){ (acc, utm) => {
       var newAcc = acc.map(tuple => {
         var newTuple = tuple
-        if(tuple._1 == utm) { 
+        if(tuple._1 == utm) {
           newTuple = new Tuple2(tuple._1, (tuple._2+1))
         }
         newTuple
