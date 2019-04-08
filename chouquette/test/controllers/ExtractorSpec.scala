@@ -1,42 +1,64 @@
-package chouquette.controllers
-
 import org.scalatestplus.play._
-import org.scalatestplus.play.guice._
 
 import play.core.server.Server
+import play.api.BuiltInComponents
+import play.api.routing.sird._
 import play.api.mvc._
-import play.api.libs.ws._
+import play.api.mvc.Results._
 import play.api.libs.json._
 import play.api.test._
-import play.api.test.Helpers._
-import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.Helpers.{ GET => UnusedGET, _ }
+
+import chouquette.controllers.Extractor
 
 
-import scala.concurrent._
-import scala.concurrent.duration._
+class ExtractorSpec extends PlaySpec {
 
-import akka.actor.ActorSystem
-
-class ExtractorSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  def action(components: BuiltInComponents): DefaultActionBuilder =
+    components.defaultActionBuilder
+
+
   "Extractor" should {
+
     "return an extractedText" in {
 
-      val client = new GuiceApplicationBuilder().injector.instanceOf[WSClient]
+      Server.withRouterFromComponents() { comp =>
+        {
+          case GET(p"/rest/annotate" ? q"text=$text")
+              if text == "awesometext" => action(comp) {
+            Ok(Json.parse("""
+              {
+                "someField": {
+                  "@surfaceForm": "toto"
+                },
+                "@surfaceForm": "titi"
+              }
+            """))
+          }
+        }
+      } { implicit port =>
+        WsTestClient.withClient { client =>
+          val future =
+            new Extractor(
+              stubControllerComponents(),
+              client,
+              s"http://localhost:$port")
+            .extract
+            .apply(FakeRequest[JsValue](
+              "",
+              "",
+              Headers(),
+              body = JsString("awesometext")))
 
-      val myFuture = new Extractor(stubControllerComponents(), client)
-        .extract
-        .apply(FakeRequest[JsValue](
-          "",
-          "",
-          Headers(),
-          body = JsString("Parking avant l'église de Parsac, l'espace devant étant trop réduit. (D/A) Descendez le chemin qui longe l'église vers le Sud. (1) En bas, au carrefour, prenez en face jusqu'à la bifurcation Y. Prenez alors à droite la route qui mène au bord de l'étang et longer celui-ci à main gauche. (2) Obliquez à droite après l'étang et continuez tout droit. Longez un étang sur la droite. (3) Au croisement, virez à droite puis après avoir passé le ruisseau de la Barbanne, prenez à gauche et passez devant le lieu-dit Maison Neuve. (4) Au carrefour en T, tournez à gauche sur la route puis suivez le chemin qui va tourner à droite le long d'un bois.")))
-
-      contentAsJson(myFuture) mustBe
-        Json.arr(JsString("Parsac"), JsString("Barbanne"))
+              contentAsJson(future) mustBe
+                Json.arr(JsString("toto"), JsString("titi"))
+            }
+      }
 
     }
+
   }
 
 }

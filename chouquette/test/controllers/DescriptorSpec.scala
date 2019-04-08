@@ -19,6 +19,7 @@ class DescriptorSpec extends PlaySpec {
   def action(components: BuiltInComponents): DefaultActionBuilder =
     components.defaultActionBuilder
 
+
   "Descriptor" should {
 
     "return a description" in {
@@ -52,8 +53,6 @@ class DescriptorSpec extends PlaySpec {
           contentAsJson(future) mustBe JsString("it works")
         }
       }
-
-
 
     }
 
