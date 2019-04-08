@@ -6,7 +6,7 @@
 POST http://localhost:51264/recupere
 content-type: application/json
 
-["31TEN"]
+"31TEN"
 
 
 ###

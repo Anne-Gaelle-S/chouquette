@@ -11,135 +11,85 @@ import play.api.mvc._
 import play.api.libs.ws._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._ // Combinator syntax
-import play.api.http.HttpEntity
+import play.api.http.{ Status => StatusCode }
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl._
-import akka.util.ByteString
 
-case class ImagesURLS( var urls: List[String])
-
-case class ResRequeteJson(var json: JsValue)
-
-object ImagesURLS {
-  implicit val ImagesURLSReads = Json.reads[ImagesURLS]
-  implicit val ImagesURLSWrites = Json.writes[ImagesURLS]
+case class Features(features: Seq[JsValue]) {
+  def toStringSeq: Seq[String] =
+    features.flatMap(
+      _.validate(
+          (__ \ "properties" \ "services" \ "download" \ "url").read[String])
+        .asOpt)
 }
 
-object ResRequeteJson {
-  implicit val ResRequeteJsonReads = Json.reads[ResRequeteJson]
-  implicit val ResRequeteJsonWrites = Json.writes[ResRequeteJson]
+object Features {
+  implicit val featuresReads: Reads[Features] = Json.reads[Features]
 }
 
-class S2Recuperator @Inject() (
+
+class S2Recuperator(
   cc: ControllerComponents,
-  mat: Materializer
+  ws: WSClient,
+  baseUrl: String
+)(
+  implicit ec: ExecutionContext
 ) extends AbstractController(cc) {
 
-
-  def getURL(url: String) = scala.io.Source.fromURL(url).mkString
-
-  def recupere = Action(parse.json) {res => {
-
-    val startDateVal = "2016-11-05"
-    val completionDateVal = "2016-11-15"
+  @Inject def this(
+    cc: ControllerComponents,
+    ws: WSClient,
+    ec: ExecutionContext
+  ) = this(cc, ws, "https://peps.cnes.fr")(ec)
 
 
-    var resultat:ImagesURLS = new ImagesURLS(List())
+  def recupere = Action.async(parse.json) { request =>
+    request.body.validate[String].asOpt
+      .map(pepsImageUrl(_)
+        .map(_
+          .map(res => Ok(Json.toJson(res)))
+          .getOrElse(InternalServerError("Request to peps failed"))))
+      .getOrElse(Future(BadRequest("Invalid json: required string")))
+  }
 
-    println("POST REQUEST")
+  def pepsImageUrl(
+      utm: String,
+      startDateVal: String="2016-11-05",
+      completionDateVal: String="2016-11-15"
+  ): Future[Option[Seq[String]]] = {
+    val url = (baseUrl + "/resto/api/collections/S2ST/search.json"
+      + "?tileid=" + utm
+      + "&startDate=" + startDateVal
+      + "&completionDate=" + completionDateVal)
+    ws.url(url)
+      .get
+      .map(validate)
+  }
 
-    val utmList = res.body.validate[Seq[String]].asOpt
-
-    utmList.map{ x =>
-
-      val utm = x(0)
-
-      val url = "https://peps.cnes.fr/resto/api/collections/S2ST/search.json?tileid="+utm+"&startDate="+startDateVal+"&completionDate="+completionDateVal
-
-      val jsValue:JsValue = Json.toJson("")
-      var rep: ResRequeteJson = new ResRequeteJson(jsValue)
-      rep.json = (Json.parse(getURL(url)) \ "features").get
-
-      val repJson = rep.json.as[List[JsValue]]
-
-      repJson.foreach{x =>
-
-        val urlImage = (x \ "properties" \ "services" \ "download" \ "url").get
-
-        resultat.urls = resultat.urls ::: List(
-          urlImage.toString.substring(
-            1,
-            urlImage.toString.size-1
-          )
-        )
-
-      }
-    // println(resultat)
-    }.getOrElse(BadRequest("Mauvaise requete... "))
-
-    Ok(Json.toJson(resultat))
-
-  }}
+  def validate(response: WSResponse): Option[Seq[String]] =
+    if (response.status == StatusCode.OK)
+      (response.json \ "features").validate[Seq[JsValue]].asOpt
+        .map(_.flatMap(_.validate(
+          (__ \ "properties" \ "services" \ "download" \ "url").read[String])
+            .asOpt))
+    else None
 
 
-def recupereDate = Action(parse.json) {res => {
+  def recupereDate = Action(parse.json).async { request =>
+    (for {
+      utm <- (request.body \ "utm").validate[String]
+      startDateVal <- (request.body \ "startDateVal").validate[String]
+      completionDateVal <- (request.body \ "completionDateVal").validate[String]
+    } yield (pepsImageUrl(utm, startDateVal, completionDateVal)))
+      .map(_
+        .map(_
+          .map(res => Ok(Json.toJson(res)))
+          .getOrElse(InternalServerError("Couldn't parse peps response"))))
+      .getOrElse(Future(BadRequest("""Invalid json: required fields:
+        |- "utm": string
+        |- "startDateVal": string // "yyyy-mm-dd"
+        |- "completionDateVal": string // "yyyy-mm-dd"""")))
+  }
 
-    var resultat:ImagesURLS = new ImagesURLS(List())
-
-    println("POST REQUEST")
-
-    val utmList = res.body.validate[JsValue].asOpt
-
-    utmList.map{ x =>
-
-      val utm = ((x \ "utm").get)
-        .toString.substring(
-            1,
-            ((x \ "utm").get).toString.size-1
-        )
-
-      val startDateVal = ((x \ "startDateVal").get)
-        .toString.substring(
-            1,
-            ((x \ "startDateVal").get).toString.size-1
-        )
-
-      val completionDateVal = ((x \ "completionDateVal").get)
-        .toString.substring(
-            1,
-            ((x \ "completionDateVal").get).toString.size-1
-        )
-
-
-      val url = "https://peps.cnes.fr/resto/api/collections/S2ST/search.json?tileid="+utm+"&startDate="+startDateVal+"&completionDate="+completionDateVal
-
-      val jsValue:JsValue = Json.toJson("")
-      var rep: ResRequeteJson = new ResRequeteJson(jsValue)
-      rep.json = (Json.parse(getURL(url)) \ "features").get
-
-      val repJson = rep.json.as[List[JsValue]]
-
-      repJson.foreach{x =>
-
-        val urlImage = (x \ "properties" \ "services" \ "download" \ "url").get
-
-        resultat.urls = resultat.urls ::: List(
-          urlImage.toString.substring(
-            1,
-            urlImage.toString.size-1
-          )
-        )
-
-      }
-    // println(resultat)
-    }.getOrElse(BadRequest("Mauvaise requete... "))
-
-    Ok(Json.toJson(resultat))
-
-  }}
 }
 
 
