@@ -5,6 +5,11 @@ scalaVersion := "2.12.8"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
+coverageEnabled := true
+coverageMinimum := 95
+// coverageFailOnMinimum := true
+coverageExcludedPackages := "<empty>;router.Routes.*;chouquette.controllers.javascript.*"
+
 libraryDependencies ++= Seq(
   guice,
   ws,

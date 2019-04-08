@@ -17,6 +17,13 @@ Application avaible at: http://localhost:51264
 Application avaible at: http://localhost:51264
 
 
+### Coverage
+
+    [sbt] clean coverage test
+    [sbt] coverageReport
+
+Reports are avaible in [chouquette/target/scala-2.12/scoverage-report/index.html](./chouquette/target/scala-2.12/scoverage-report/index.html).
+
 
 ## Services
 
