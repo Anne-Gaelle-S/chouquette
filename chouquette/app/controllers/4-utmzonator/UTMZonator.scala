@@ -1,10 +1,12 @@
-package chouquette.controllers
+package controllers
 
 import javax.inject.Inject
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
+import scala.util.{Success, Failure}
+import scala.util.matching.Regex
 
 import play.api._
 import play.api.mvc._
@@ -49,38 +51,71 @@ class UTMZonator @Inject() (
   }
 
   def zonator = Action(parse.json) { result => {
-    println("POST REQUEST")
-    // val optionOfCoords = res.body.validate[Seq[Coords]].asOpt
-    // println(optionOfCoords.map(x => Ok(x.toString)))
-    result.body
+    val res = result.body
       .validate[Seq[Coords]]
       .asOpt
       .map( coords => utmTransformator(coords) ) // Ok(x.toString)
-      .getOrElse(BadRequest("Mauvaise requete... "))
+      .map(_.onComplete{
+        case Success(mgrsJson) => {
+          println("SUCCESS: "+extractUTMmajoritaire(mgrsJson))
+          Ok(extractUTMmajoritaire(mgrsJson))
+        }
+        case Failure(err) => throw new IllegalStateException("Future failed")
+      })
+      // .getOrElse(BadRequest("Mauvaise requete... "))
 
-    // Ok("Ca marche")
+    Ok("Ca marche")
   }}
 
-  def utmTransformator(coordonnees: Seq[Coords]) = {
-    println("-------------------------------------------")
-    println(coordonnees)
-    println("~~~~~~~~~")
-    coordonnees.map( (coord) => {
-      println(coord.lat+"  -   "+coord.long)
-      ws.url("https://api.opencagedata.com/geocode/v1/json?key=4e76f5429883420b92d7e90569089f7c&q="+coord.lat+"%2C"+coord.long+"&pretty=1")
-        .withHttpHeaders("Accept" -> "application/json")
-        .get()
-        .map( (res) => {
-          println("RESULTTAAAAT:")
-          println(res)
-          val json = Json.parse(res.body)
-          println( json \\ "MGRS")
-          // res
-        })
-    })
+  def utmTransformator(coordonnees: Seq[Coords]): Future[Seq[JsValue]] = {
+    // println(coordonnees)
+    
+    val utmsFutures: Seq[Future[JsValue]] = coordonnees
+      .map( (coord) => {
+        ws.url("https://api.opencagedata.com/geocode/v1/json?key=4e76f5429883420b92d7e90569089f7c&q="+coord.lat+"%2C"+coord.long+"&pretty=1")
+          .withHttpHeaders("Accept" -> "application/json")
+          .get()
+          .map(result => {
+            val json = Json.parse(result.body)
+            val mgrs = (json \\ "MGRS").head
+            // println( "Element: "+mgrs)
+            if (mgrs == Nil) {
+              throw new IllegalArgumentException("One of parameters is illegal.")
+            } else {
+              mgrs
+            }
+          })
+      })
 
-    Ok(coordonnees.toString)
+    val futureUTMs: Future[Seq[JsValue]] = Future.sequence(utmsFutures)
+    return futureUTMs
   }
+
+  def extractUTMmajoritaire(mgrsJson: Seq[JsValue]): String = {
+    val utms = mgrsJson.map( mgrs => { // 31NEG3322907942 => 31N
+        val text = mgrs.as[String] // Json.stringify(mgrs)
+        val myRegex = "[a-zA-Z]"
+        val mercator = (text.split(myRegex, 2)).toList.head // 31
+        val firstLetter = (myRegex.r findFirstIn text).getOrElse(println) // N
+        mercator+firstLetter // 31N
+      })
+
+    val startAcc = utms.distinct.map(utm => new Tuple2(utm, 0))
+    var nbOccurences = utms.foldLeft(startAcc){ (acc, utm) => {
+      var newAcc = acc.map(tuple => {
+        var newTuple = tuple
+        if(tuple._1 == utm) { 
+          newTuple = new Tuple2(tuple._1, (tuple._2+1))
+        }
+        newTuple
+      })
+      newAcc
+    }} // list of tuples ((31N, 2), (39Q, 1) ...)
+
+    var zoneUTMmajoritaire = nbOccurences.maxBy(_._2)._1 // la zone UTM majoritaire, ex: 31N
+    return zoneUTMmajoritaire
+  }
+
 }
 
 // API Key : 4e76f5429883420b92d7e90569089f7c
