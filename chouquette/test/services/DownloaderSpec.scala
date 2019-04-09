@@ -55,27 +55,54 @@ class DownloaderSpec extends PlaySpec {
 
   "Downloader" should {
 
-    "download image" in {
+    "download image in tmp directory" in {
+
+      val tmpDir = "tmp/img"
 
       Server.withRouterFromComponents() { components =>
         import components.{ defaultActionBuilder => Action }
         {
-          case GET(p"/") => Action { Ok("file content") }
+          case GET(p"/img") => Action { Ok("file content") }
         }
       } { implicit port =>
         WsTestClient.withClient { client =>
-          val tryFuture =
-            new Downloader(client).downloadImage(s"http://localhost:$port/")
+          val future = new Downloader(client, tmpDir)
+            .downloadImage(s"http://localhost:$port/img")
 
-          tryFuture mustBe 'isSuccess
-          val tempFile = Await.result(tryFuture.get, 10 seconds)
+          val tempFile = Await.result(future, 10 seconds)
+
           tempFile must fullyMatch regex
-            """tmp/img/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\.tiff"""
+            tmpDir+"""/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\.tiff"""
           fileContent(tempFile) mustBe Some("file content")
         }
       }
 
-      cleanUpFile("tmp/img")
+      cleanUpFile(tmpDir)
+
+    }
+
+
+    "download image in current dir" in {
+
+      val tmpDir = ""
+
+      Server.withRouterFromComponents() { components =>
+        import components.{ defaultActionBuilder => Action }
+        {
+          case GET(p"/img2") => Action { Ok("toto") }
+        }
+      } { implicit port =>
+        WsTestClient.withClient { client =>
+          val future = new Downloader(client, tmpDir)
+            .downloadImage(s"http://localhost:$port/img2")
+
+          val tempFile = Await.result(future, 10 seconds)
+
+          fileContent(tempFile) mustBe Some("toto")
+
+          cleanUpFile(tempFile)
+        }
+      }
 
     }
 

@@ -1,7 +1,7 @@
 package chouquette.services
 
 import scala.concurrent._
-import scala.util.{ Try, Success, Failure }
+import scala.util.Try
 
 import java.io.{ File, OutputStream }
 import java.nio.file.{ Paths, Path, Files }
@@ -19,38 +19,32 @@ import chouquette.controllers.Downloadable
 
 
 @Singleton
-class Downloader @Inject()(
-  ws: WSClient
+class Downloader(
+  ws: WSClient,
+  tmpFolder: String
 )(
   implicit ec: MyExecutionContext
 ) extends Downloadable {
 
+  @Inject def this(
+    ws: WSClient,
+    ec: MyExecutionContext
+  ) = this(ws, "tmp/img")(ec)
+
   implicit val materializer = ActorMaterializer()(ec.system)
 
   // Future returns the path where the image was saved on local storage.
-  def downloadImage(imageUrl: String): Try[Future[String]] = {
+  def downloadImage(imageUrl: String): Future[String] = {
     val uuid = randomUUID().toString
-    val strPath = s"tmp/img/$uuid.tiff"
-    createFileIfNeeded(strPath)
-      .map(downloadToPath(imageUrl))
-      .map(_.map(_ => strPath))
+    val path = Paths.get(tmpFolder).resolve(s"$uuid.tiff")
+    createFileIfNeeded(path)
+    downloadToPath(imageUrl, path).map(_ => path.toString)
   }
 
-  def createFileIfNeeded(strPath: String): Try[Path] = {
-    val path = Paths.get(strPath)
+  def createFileIfNeeded(path: Path): Unit = {
     val file = path.toFile
-    if (file.exists) checkIfDirectory(file) else createFile(path)
-  }
-
-  def checkIfDirectory(file: File): Try[Path] =
-    if (file.isFile) Failure(
-      new Exception("Can't download image: temp file already exists"))
-    else Failure(
-      new Exception("Can't download image: temp file is a directory"))
-
-  def createFile(path: Path): Try[Path] = {
     createParentIfNeeded(path)
-    Success(Files.createFile(path))
+    Files.createFile(path)
   }
 
   def createParentIfNeeded(path: Path): Unit = {
@@ -58,7 +52,7 @@ class Downloader @Inject()(
     if (parent != null) Files.createDirectories(parent)
   }
 
-  def downloadToPath(url: String)(path: Path): Future[Done] =
+  def downloadToPath(url: String, path: Path): Future[Done] =
     ws.url(url)
       .withMethod("GET")
       .stream()
