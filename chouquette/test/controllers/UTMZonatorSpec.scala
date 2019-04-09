@@ -48,10 +48,7 @@ class UTMZonatorSpec extends PlaySpec {
               client,
               s"http://localhost:$port")
             .zonator
-            .apply(FakeRequest[JsValue](
-              "",
-              "",
-              Headers(),
+            .apply(FakeRequest[JsValue]("", "", Headers(),
               body = Json.parse("""
                 [
                   {

@@ -5,7 +5,7 @@ scalaVersion := "2.12.8"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-fork in Test := false
+// fork in Test := false
 
 coverageEnabled := true
 coverageMinimum := 95

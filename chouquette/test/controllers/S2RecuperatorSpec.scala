@@ -74,11 +74,8 @@ class S2RecuperatorSpec extends PlaySpec {
               client,
               s"http://localhost:$port")
             .recupere
-            .apply(FakeRequest[JsValue](
-              "",
-              "",
-              Headers(),
-              body = JsString("myutmzone")))
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse(""""myutmzone"""")))
 
           contentAsJson(future) mustBe
             Json.arr(JsString("valid url"), JsString("other valid url"))
@@ -128,14 +125,14 @@ class S2RecuperatorSpec extends PlaySpec {
               client,
               s"http://localhost:$port")
             .recupereDate
-            .apply(FakeRequest[JsValue](
-              "",
-              "",
-              Headers(),
-              body = Json.obj(
-                "utm" -> "myutmzone",
-                "startDateVal" -> "start",
-                "completionDateVal" -> "completion")))
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse("""
+                {
+                  "utm": "myutmzone",
+                  "startDateVal": "start",
+                  "completionDateVal": "completion"
+                }
+              """)))
 
           contentAsJson(future) mustBe
             Json.arr(JsString("toto"))

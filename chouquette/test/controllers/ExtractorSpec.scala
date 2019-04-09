@@ -46,11 +46,8 @@ class ExtractorSpec extends PlaySpec {
               client,
               s"http://localhost:$port")
             .extract
-            .apply(FakeRequest[JsValue](
-              "",
-              "",
-              Headers(),
-              body = JsString("awesometext")))
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse(""""awesometext"""")))
 
               contentAsJson(future) mustBe
                 Json.arr(JsString("toto"), JsString("titi"))
