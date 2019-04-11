@@ -51,24 +51,18 @@ class UTMZonator(
     return (Json.parse(coord));
   }
 
-  def zonator = Action(parse.json) { result => {
-    val res = result.body
+  def zonator = Action.async(parse.json) { result => {
+    result.body
       .validate[Seq[Coords]]
       .asOpt
       .map( coords => utmTransformator(coords) ) // Ok(x.toString)
-      .map(_
-        .map(mgrsJson => {
-          println("SUCCESS: "+extractUTMmajoritaire(mgrsJson))
-          Ok(extractUTMmajoritaire(mgrsJson))
-        }))
-      // .getOrElse(BadRequest("Mauvaise requete... "))
-
-    Ok("Ca marche")
+      .map( allMgrs => {
+        allMgrs.map( mgrs => Ok(extractUTMmajoritaire(mgrs) ))
+      })
+      .getOrElse(Future(BadRequest("Mauvaise requete... ")))
   }}
 
   def utmTransformator(coordonnees: Seq[Coords]): Future[Seq[JsValue]] = {
-    // println(coordonnees)
-
     val utmsFutures: Seq[Future[JsValue]] = coordonnees
       .map( (coord) => {
         ws.url(baseUrl + "/geocode/v1/json"
@@ -80,8 +74,7 @@ class UTMZonator(
           .map(result => {
             val json = Json.parse(result.body)
             val mgrs = (json \\ "MGRS").head
-            // println( "Element: "+mgrs)
-            if (mgrs == Nil) {
+            if (Json.stringify(mgrs) == Nil) {
               throw new IllegalArgumentException("One of parameters is illegal.")
             } else {
               mgrs
@@ -94,12 +87,15 @@ class UTMZonator(
   }
 
   def extractUTMmajoritaire(mgrsJson: Seq[JsValue]): String = {
-    val utms = mgrsJson.map( mgrs => { // 31NEG3322907942 => 31N
-        val text = mgrs.as[String] // Json.stringify(mgrs)
-        val myRegex = "[a-zA-Z]"
-        val mercator = (text.split(myRegex, 2)).toList.head // 31
-        val firstLetter = (myRegex.r findFirstIn text).getOrElse(println) // N
-        mercator+firstLetter // 31N
+    val utms = mgrsJson.map( mgrs => { // 31NDB3322907942 => 31NDB
+        val mgrsTotal = mgrs.as[String] 
+        val mgrsCut = 
+         (mgrsTotal(0).toString + // 3
+          mgrsTotal(1).toString + // 1
+          mgrsTotal(2).toString + // N
+          mgrsTotal(3).toString + // D
+          mgrsTotal(4).toString)  // B
+        mgrsCut
       })
 
     val startAcc = utms.distinct.map(utm => new Tuple2(utm, 0))
@@ -117,7 +113,6 @@ class UTMZonator(
     var zoneUTMmajoritaire = nbOccurences.maxBy(_._2)._1 // la zone UTM majoritaire, ex: 31N
     return zoneUTMmajoritaire
   }
-
 }
 
 // API Key : 4e76f5429883420b92d7e90569089f7c
