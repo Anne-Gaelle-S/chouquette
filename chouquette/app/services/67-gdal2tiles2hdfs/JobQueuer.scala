@@ -1,32 +1,14 @@
 package chouquette.services
 
 import scala.concurrent._
-import scala.util.{ Try, Success, Failure }
+import scala.util.Try
 
 import java.util.UUID.randomUUID
 
 import javax.inject._
 
+import chouquette._
 import chouquette.controllers.JobQueueable
-
-
-sealed trait JobStatus
-
-object JobStatus {
-  val fromTry: Try[String] => JobStatus = {
-    case Success(result) => Finished(result)
-    case Failure(exception) => Failed(exception.getMessage)
-  }
-}
-
-
-case object UnknownJob extends JobStatus
-
-case object Running extends JobStatus
-
-case class Finished(result: String) extends JobStatus
-
-case class Failed(message: String) extends JobStatus
 
 
 @Singleton
@@ -43,13 +25,13 @@ class JobQueuer(
   val queueMaxSize = _queueMaxSize
 
 
-  var runningJobs: Map[String, Future[String]] = Map.empty
-  var finishedJobs: Map[String, Try[String]] = Map.empty
+  var runningJobs: Map[String, Future[(MetaData, String)]] = Map.empty
+  var finishedJobs: Map[String, Try[(MetaData, String)]] = Map.empty
 
 
   def canBeSubmitted: Boolean = runningJobs.size < queueMaxSize
 
-  def submit(job: Future[String]): String = {
+  def submit(job: Future[(MetaData, String)]): String = {
     val uuid = randomUUID().toString
     addRunningJob(uuid, job)
     job.onComplete { tryResult =>
@@ -66,13 +48,13 @@ class JobQueuer(
         .map(JobStatus.fromTry)
         .getOrElse(UnknownJob)
 
-  def addRunningJob(uuid: String, job: Future[String]): Unit =
+  def addRunningJob(uuid: String, job: Future[(MetaData, String)]): Unit =
     runningJobs += ((uuid, job))
 
   def removeRunningJob(uuid: String): Unit =
     runningJobs -= uuid
 
-  def addFinishedJob(uuid: String, tryResult: Try[String]): Unit =
+  def addFinishedJob(uuid: String, tryResult: Try[(MetaData, String)]): Unit =
     finishedJobs += ((uuid, tryResult))
 
   def removeFinishedJob(uuid: String): Unit =

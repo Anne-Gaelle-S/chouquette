@@ -9,6 +9,7 @@ import play.api.mvc._
 import play.api.libs.json._
 import com.google.inject.ImplementedBy
 
+import chouquette.{ JobStatus, DownloadResult, MetaData }
 import chouquette.controllers.routes.{ TilesAndHdfs => ReverseTilesAndHdfs }
 import chouquette.services._
 
@@ -16,20 +17,25 @@ import chouquette.services._
 case class HdfsServer(host: String, user: String, password: String)
 
 
+case class Auth(username: String, password: String)
+
+
 @ImplementedBy(classOf[JobQueuer])
 trait JobQueueable {
   def canBeSubmitted: Boolean
-  def submit(job: Future[String]): String
+  def submit(job: Future[(MetaData, String)]): String
+  def status(uuid: String): JobStatus
 }
 
 @ImplementedBy(classOf[Downloader])
 trait Downloadable {
-  def downloadImage(url: String): Try[Future[String]]
+  def downloadImage(imageUrl: String, auth: Auth): Future[DownloadResult]
+  def cleanup(downloadResult: DownloadResult): Unit
 }
 
 @ImplementedBy(classOf[Tiler])
 trait Tileable {
-  def gdal2Tiles(imagePath: String): Future[String]
+  def gdal2Tiles(downloadResult: DownloadResult): Future[String]
 }
 
 @ImplementedBy(classOf[HdfsPutter])
@@ -54,13 +60,16 @@ class TilesAndHdfs @Inject()(
   def gdal2tiles2hdfs = Action(parse.json) { request =>
     (for {
       imageUrl <- (request.body \ "imageUrl").validate[String]
+      pepsUser <- (request.body \ "pepsUser").validate[String]
+      pepsPass <- (request.body \ "pepsPass").validate[String]
       hdfsHost <- (request.body \ "hdfsHost").validate[String]
       hdfsUser <- (request.body \ "hdfsUser").validate[String]
       hdfsPass <- (request.body \ "hdfsPass").validate[String]
       hdfsPath <- (request.body \ "hdfsPath").validate[String]
     } yield {
+      val auth = Auth(pepsUser, pepsPass)
       val hdfsServer = HdfsServer(hdfsHost, hdfsUser, hdfsPass)
-      trySubmitJob(imageUrl, hdfsServer, hdfsPass)
+      trySubmitJob(imageUrl, auth, hdfsServer, hdfsPass)
     })
       .map {
         case Success(res) => Created(Json.obj("status" -> JsString(res)))
@@ -68,6 +77,8 @@ class TilesAndHdfs @Inject()(
       }
       .getOrElse(BadRequest("""Invalid json: required fields :
         |"imageUrl": string
+        |"pepsUser": string
+        |"pepsPass": string
         |"hdfsHost": string
         |"hdfsUser": string
         |"hdfsPass": string
@@ -76,31 +87,32 @@ class TilesAndHdfs @Inject()(
 
   def trySubmitJob(
       imageUrl: String,
+      auth: Auth,
       hdfsServer: HdfsServer,
       hdfsPath: String
   ): Try[String] =
-    if (jobQueuer.canBeSubmitted)
-      downloadThenTileThenHdfs(imageUrl, hdfsServer, hdfsPath)
-        .map(job => {
-          val jobId = jobQueuer.submit(job)
-          ReverseTilesAndHdfs.status(jobId).path
-        })
-    else Failure(new Exception("Couldn't submit job"))
+    if (jobQueuer.canBeSubmitted) {
+      val job = downloader
+        .downloadImage(imageUrl, auth)
+        .flatMap(tileThenHdfs(hdfsServer, hdfsPath))
+      val jobId = jobQueuer.submit(job)
+      Success(ReverseTilesAndHdfs.status(jobId).path)
+    } else Failure(new Exception("Couldn't submit job"))
 
-  def downloadThenTileThenHdfs(
-      imageUrl: String,
+  def tileThenHdfs(
       hdfsServer: HdfsServer,
       hdfsPath: String
-  ): Try[Future[String]] =
-      downloader.downloadImage(imageUrl)
-        .map(_.flatMap(tileThenHdfs(hdfsServer, hdfsPath)))
+  )(
+      downloadResult: DownloadResult
+  ): Future[(MetaData, String)] = {
+    val res = for {
+        tilesPath <- tiler.gdal2Tiles(downloadResult)
+        hdfsPathBis <- hdfsPutter.putHdfs(hdfsServer, hdfsPath)(tilesPath)
+      } yield (downloadResult.metaData, hdfsPathBis)
+    res.onComplete(_ => downloader.cleanup(downloadResult))
+    res
+  }
 
-  def tileThenHdfs(hdfsServer: HdfsServer, hdfsPath: String)
-                  (imgPath: String): Future[String] =
-    for {
-      tilesPath <- tiler.gdal2Tiles(imgPath)
-      hdfsPathBis <- hdfsPutter.putHdfs(hdfsServer, hdfsPath)(tilesPath)
-    } yield hdfsPathBis
 
 
   // GET /status/<jobId>

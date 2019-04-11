@@ -4,6 +4,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util._
 
+import chouquette._
 import chouquette.services._
 
 
@@ -26,7 +27,7 @@ class JobQueuerSpec extends PlaySpec {
       val queuer = new JobQueuer(3)
       val future = Future {
         Thread.sleep(1000)
-        "finished"
+        (MetaData(Point(0,1),Point(2,3)), "finished")
       }
       val uuid = queuer.submit(future)
 
@@ -41,7 +42,8 @@ class JobQueuerSpec extends PlaySpec {
       Thread.sleep(500)
 
       queuer.runningJobs mustBe Map.empty
-      queuer.finishedJobs mustBe Map(uuid -> Success("finished"))
+      queuer.finishedJobs mustBe
+        Map(uuid -> Success((MetaData(Point(0,1),Point(2,3)), "finished")))
 
       // removeFinishedJob
       queuer.removeFinishedJob(uuid)
@@ -53,7 +55,7 @@ class JobQueuerSpec extends PlaySpec {
         .map { _ =>
           val future = Future {
             Thread.sleep(1000)
-            "result"
+            (MetaData(Point(0,1),Point(2,3)), "result")
           }
           queuer.submit(future)
           future
@@ -74,7 +76,7 @@ class JobQueuerSpec extends PlaySpec {
 
       val future2 = Future {
         Thread.sleep(1000)
-        "success"
+        (MetaData(Point(0,1),Point(2,3)), "success")
       }
       val uuid2 = queuer.submit(future2)
 
@@ -83,7 +85,8 @@ class JobQueuerSpec extends PlaySpec {
       Await.result(future2, 2 seconds)
       Thread.sleep(500)
 
-      queuer.status(uuid2) mustBe Finished("success")
+      queuer.status(uuid2) mustBe
+        Finished((MetaData(Point(0,1),Point(2,3)), "success"))
 
       val future3 = Future {
         Thread.sleep(1000)

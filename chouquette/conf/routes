@@ -15,5 +15,5 @@ POST  /recupere             chouquette.controllers.S2Recuperator.recupere
 POST  /recupereDate         chouquette.controllers.S2Recuperator.recupereDate
 
 # 67 - gdal2tiles2hdfs
-GET   /gdal2tiles2hdfs      chouquette.controllers.TilesAndHdfs.gdal2tiles2hdfs
+POST  /gdal2tiles2hdfs      chouquette.controllers.TilesAndHdfs.gdal2tiles2hdfs
 GET   /status/:jobId        chouquette.controllers.TilesAndHdfs.status(jobId: String)
