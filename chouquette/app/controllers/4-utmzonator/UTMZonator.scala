@@ -87,7 +87,7 @@ class UTMZonator(
 
   def extractUTMmajoritaire(mgrsJson: Seq[JsValue]): String = {
     val utms = mgrsJson.map( mgrs => { // 31NDB3322907942 => 31NDB
-        val mgrsTotal = mgrs.as[String] 
+        val mgrsTotal = mgrs.as[String]
         mgrsTotal.substring(0,5)
       })
 
@@ -108,4 +108,3 @@ class UTMZonator(
     return zoneUTMmajoritaire
   }
 }
-

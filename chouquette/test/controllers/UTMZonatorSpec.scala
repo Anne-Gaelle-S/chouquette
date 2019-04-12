@@ -30,46 +30,56 @@ class UTMZonatorSpec extends PlaySpec {
     "found the major UTM zone from little data" in {
       Server.withRouterFromComponents() { comp =>
         {
-          case GET(p"/data/outing/502272") => action(comp) {
+          // latLong 1
+          case GET(p"/geocode/v1/json" ? q"q=$latLong")
+              if (latLong == "12.3,4.56") => action(comp) {
             Ok(Json.parse("""
-              [
-                {
-                  "description": "it works",
-                  "unused field": 123
-                },
-                {
-                  "description": "unused description"
-                }
-              ]
+              {
+                "some field": [
+                  {
+                    "MGRS": "abcdefg"
+                  },
+                  {
+                    "MGRS": "won't be used"
+                  }
+                ]
+              }
+            """))
+          }
+          // latLong 2
+          case GET(p"/geocode/v1/json" ? q"q=$latLong")
+              if (latLong == "7.89,0.12") => action(comp) {
+            Ok(Json.parse("""
+              {
+                "MGRS": "hijklmn"
+              }
             """))
           }
         }
       } { implicit port =>
         WsTestClient.withClient { client =>
-          val future = 
+          val future =
             new UTMZonator(
               stubControllerComponents(),
               client,
               s"http://localhost:$port")
-              .zonator
-              .apply(FakeRequest[JsValue]("", "", Headers(),
-                body = Json.parse("""
-                  [
-                    {
-                      "lat": 12.3,
-                      "long": 4.56
-                    },
-                    {
-                      "lat": 7.89,
-                      "long": 0.12
-                    }
-                  ]
-                """)))
+            .zonator
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse("""
+                [
+                  {
+                    "lat": 12.3,
+                    "long": 4.56
+                  },
+                  {
+                    "lat": 7.89,
+                    "long": 0.12
+                  }
+                ]
+              """)))
 
-          future.onComplete{
-            case Success(res) => res mustBe Future("31PFP")
-            case Failure(res) => res mustBe Future(BadRequest("Mauvaise requete... "))
-          }
+          status(future) mustBe OK
+          contentAsString(future) mustBe "abcde"
         }
       }
     }
@@ -77,81 +87,53 @@ class UTMZonatorSpec extends PlaySpec {
     "found the major UTM zone from more data" in {
       Server.withRouterFromComponents() { comp =>
         {
-          case GET(p"/data/outing/502272") => action(comp) {
+          case GET(p"/geocode/v1/json") => action(comp) {
             Ok(Json.parse("""
-              [
-                {
-                  "description": "it works",
-                  "unused field": 123
-                },
-                {
-                  "description": "unused description"
-                }
-              ]
+              {
+                "MGRS": "moar than 5 chars"
+              }
             """))
           }
         }
       } { implicit port =>
         WsTestClient.withClient { client =>
-          val future = 
+          val future =
             new UTMZonator(
               stubControllerComponents(),
               client,
               s"http://localhost:$port")
-              .zonator
-              .apply(FakeRequest[JsValue]("", "", Headers(),
-                body = Json.parse("""
-                  [
-                    {"long": 2.2, "lat": 1.1},
-                    {"long": 3.3, "lat": 5.5},
-                    {"long": 15, "lat": 2},
-                    {"long": 30, "lat": 20}
-                  ]
-                """)))
+            .zonator
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse("""
+                [
+                  {"long": 2.2, "lat": 1.1},
+                  {"long": 3.3, "lat": 5.5},
+                  {"long": 15, "lat": 2},
+                  {"long": 30, "lat": 20}
+                ]
+              """)))
 
-          future.onComplete{
-            case Success(res) => res mustBe Future("31NDB")
-            case Failure(res) => res mustBe Future(BadRequest("Mauvaise requete... "))
-          }
+          status(future) mustBe OK
+          contentAsString(future) mustBe "kaboum"
         }
       }
     }
 
     "throw a error if not correct entry" in {
-      Server.withRouterFromComponents() { comp =>
-        {
-          case GET(p"/data/outing/502272") => action(comp) {
-            Ok(Json.parse("""
-              [
-                {
-                  "description": "it works",
-                  "unused field": 123
-                },
-                {
-                  "description": "unused description"
-                }
-              ]
-            """))
-          }
-        }
-      } { implicit port =>
         WsTestClient.withClient { client =>
-          val future = 
+          val future =
             new UTMZonator(
               stubControllerComponents(),
               client,
-              s"http://localhost:$port")
-              .zonator
-              .apply(FakeRequest[JsValue]("", "", Headers(),
-                body = Json.parse("""
-                  [{"lat": 5.5}]
-                """)))
+              "whatever, this won't be called")
+            .zonator
+            .apply(FakeRequest[JsValue]("", "", Headers(),
+              body = Json.parse("""
+                [{"lat": 5.5}]
+              """)))
 
-          future.onComplete{
-            case Success(res) => res mustBe Future("<not completed>")
-            case Failure(res) => res mustBe Future(BadRequest("Mauvaise requete... "))
-          }
-        }
+          status(future) mustBe BAD_REQUEST
+          contentAsString(future) mustBe "Mauvaise requete... "
       }
     }
 
