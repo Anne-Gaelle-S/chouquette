@@ -29,6 +29,21 @@ Reports are avaible in [chouquette/target/scala-2.12/scoverage-report/index.html
 
 ### 1. Descriptor
 
+#### `GET /requestMe`
+
+*Request:*
+```jsonld
+{
+    int // id of the hike
+}
+```
+
+*Response:*
+```jsonld
+{
+    string // description of the hike
+}
+```
 
 ---
 
