@@ -54,7 +54,7 @@ class UTMZonator(
     result.body
       .validate[Seq[Coords]]
       .asOpt
-      .map( coords => utmTransformator(coords) ) // Ok(x.toString)
+      .map( coords => utmTransformator(coords) )
       .map( allMgrs => {
         allMgrs.map( mgrs => Ok(extractUTMmajoritaire(mgrs) ))
       })
@@ -65,7 +65,7 @@ class UTMZonator(
     val utmsFutures: Seq[Future[JsValue]] = coordonnees
       .map( (coord) => {
         ws.url(baseUrl + "/geocode/v1/json"
-            + "?key=4e76f5429883420b92d7e90569089f7c"
+            + "?key=4e76f5429883420b92d7e90569089f7c" // API key
             + "&q=" + coord.lat+"%2C"+coord.long
             + "&pretty=1")
           .withHttpHeaders("Accept" -> "application/json")
@@ -109,4 +109,3 @@ class UTMZonator(
   }
 }
 
-// API Key : 4e76f5429883420b92d7e90569089f7c
