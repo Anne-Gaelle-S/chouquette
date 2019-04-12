@@ -161,8 +161,10 @@ We can modify `startDateVal` and `completionDateVal` with the route /recupereDat
 ```jsonld
 {
     "imageUrl": string, // url to download image from
+    "pepsUser": string, // username for PEPS
+    "pepsPass": string, // password for PEPS
     "hdfsHost": string, // host for HDFS server
-    "hdfsUser": string, // user for HDFS server
+    "hdfsUser": string, // username for HDFS server
     "hdfsPass": string, // password for HDFS server
     "hdfsPath": string, // path where tiles should be saved on HDFS server
 }

@@ -4,7 +4,7 @@ import scala.concurrent._
 
 import javax.inject._
 
-import chouquette.MyExecutionContext
+import chouquette.{ MyExecutionContext, DownloadResult }
 import chouquette.controllers.Tileable
 
 
@@ -13,6 +13,6 @@ class Tiler @Inject()()(
   implicit ec: MyExecutionContext
 ) extends Tileable {
 
-  def gdal2Tiles(imagePath: String): Future[String] = ???
+  def gdal2Tiles(downloadResult: DownloadResult): Future[String] = ???
 
 }
