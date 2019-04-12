@@ -1,7 +1,6 @@
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice._
 
-import scala.io.Source
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

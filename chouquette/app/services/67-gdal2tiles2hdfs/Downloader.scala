@@ -29,6 +29,7 @@ class Downloader(
   val tmpFolder = Paths.get(tmpFolderStr)
 
 
+  // cleanup extracted base directory (and tiff image as it is inside it)
   def cleanup(downloadResult: DownloadResult): Unit =
     FileUtils.deleteQuietly(new File(downloadResult.extractedDir))
 

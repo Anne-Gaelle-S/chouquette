@@ -4,7 +4,7 @@ import scala.concurrent._
 
 import javax.inject._
 
-import chouquette.MyExecutionContext
+import chouquette._
 import chouquette.controllers.{ HdfsPuttable, HdfsServer }
 
 
@@ -14,6 +14,6 @@ class HdfsPutter @Inject()()(
 ) extends HdfsPuttable {
 
   def putHdfs(hdfsServer: HdfsServer, hdfsPath: String)
-             (tilesPath: String): Future[String] = ???
+             (tileResult: TileResult): Future[String] = ???
 
 }

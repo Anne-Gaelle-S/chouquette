@@ -9,7 +9,7 @@ import play.api.mvc._
 import play.api.libs.json._
 import com.google.inject.ImplementedBy
 
-import chouquette.{ JobStatus, DownloadResult, MetaData }
+import chouquette._
 import chouquette.controllers.routes.{ TilesAndHdfs => ReverseTilesAndHdfs }
 import chouquette.services._
 
@@ -28,6 +28,8 @@ trait JobQueueable {
 }
 
 @ImplementedBy(classOf[Downloader])
+// Downloads archive, extracts it, keep one image of it, warps it and gets
+// metadata.
 trait Downloadable {
   def downloadImage(imageUrl: String, auth: Auth): Future[DownloadResult]
   def cleanup(downloadResult: DownloadResult): Unit
@@ -35,13 +37,14 @@ trait Downloadable {
 
 @ImplementedBy(classOf[Tiler])
 trait Tileable {
-  def gdal2Tiles(downloadResult: DownloadResult): Future[String]
+  def gdal2Tiles(downloadResult: DownloadResult): Future[TileResult]
+  def cleanup(tileResult: TileResult): Unit
 }
 
 @ImplementedBy(classOf[HdfsPutter])
 trait HdfsPuttable {
   def putHdfs(hdfsServer: HdfsServer, hdfsPath: String)
-             (tilesPath: String): Future[String]
+             (tileResult: TileResult): Future[String]
 }
 
 
@@ -104,12 +107,24 @@ class TilesAndHdfs @Inject()(
       hdfsPath: String
   )(
       downloadResult: DownloadResult
+  ): Future[(MetaData, String)] =
+    tiler.gdal2Tiles(downloadResult)
+      .flatMap(hdfs(hdfsServer, hdfsPath)(downloadResult))
+
+  def hdfs(
+      hdfsServer: HdfsServer,
+      hdfsPath: String
+  )(
+      downloadResult: DownloadResult
+  )(
+      tileResult: TileResult
   ): Future[(MetaData, String)] = {
-    val res = for {
-        tilesPath <- tiler.gdal2Tiles(downloadResult)
-        hdfsPathBis <- hdfsPutter.putHdfs(hdfsServer, hdfsPath)(tilesPath)
-      } yield (downloadResult.metaData, hdfsPathBis)
-    res.onComplete(_ => downloader.cleanup(downloadResult))
+    val res = hdfsPutter.putHdfs(hdfsServer, hdfsPath)(tileResult)
+      .map((downloadResult.metaData, _))
+    res.onComplete { _ =>
+      downloader.cleanup(downloadResult)
+      tiler.cleanup(tileResult)
+    }
     res
   }
 
