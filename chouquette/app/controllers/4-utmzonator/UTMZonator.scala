@@ -32,7 +32,6 @@ object Coords {
   )(Coords.apply _)
 }
 
-
 class UTMZonator(
   cc: ControllerComponents,
   ws: WSClient, // for the http request
@@ -70,7 +69,7 @@ class UTMZonator(
             + "&q=" + coord.lat+"%2C"+coord.long
             + "&pretty=1")
           .withHttpHeaders("Accept" -> "application/json")
-          .get()
+          .get
           .map(result => {
             val json = Json.parse(result.body)
             val mgrs = (json \\ "MGRS").head
@@ -89,13 +88,7 @@ class UTMZonator(
   def extractUTMmajoritaire(mgrsJson: Seq[JsValue]): String = {
     val utms = mgrsJson.map( mgrs => { // 31NDB3322907942 => 31NDB
         val mgrsTotal = mgrs.as[String] 
-        val mgrsCut = 
-         (mgrsTotal(0).toString + // 3
-          mgrsTotal(1).toString + // 1
-          mgrsTotal(2).toString + // N
-          mgrsTotal(3).toString + // D
-          mgrsTotal(4).toString)  // B
-        mgrsCut
+        mgrsTotal.substring(0,5)
       })
 
     val startAcc = utms.distinct.map(utm => new Tuple2(utm, 0))
@@ -108,7 +101,8 @@ class UTMZonator(
         newTuple
       })
       newAcc
-    }} // list of tuples ((31N, 2), (39Q, 1) ...)
+    }} // list of tuples ((31NFF, 2), (31NEG, 1) ...)
+    // println(nbOccurences)
 
     var zoneUTMmajoritaire = nbOccurences.maxBy(_._2)._1 // la zone UTM majoritaire, ex: 31N
     return zoneUTMmajoritaire

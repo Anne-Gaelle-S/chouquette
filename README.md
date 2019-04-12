@@ -84,6 +84,31 @@ Reports are avaible in [chouquette/target/scala-2.12/scoverage-report/index.html
 ### 4. UTMZonator
 
 
+#### `POST /zonator`
+
+*Request:*
+```jsonld
+{
+    [
+        {
+            "long": double // longitude of the first place
+            "lat": double // latitude of the first place
+        },
+        {
+            "long": double // longitude of the second place
+            "lat": double // latitude of the second place
+        }
+    ] 
+}
+```
+
+*Response:*
+```jsonld
+{
+    string // string contening the major UTM zone
+}
+```
+
 ---
 
 ### 5. S2Recuperator
