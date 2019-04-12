@@ -62,7 +62,7 @@ class UTMZonatorSpec extends PlaySpec {
                 ]
               """)))
 
-          contentAsString(future) mustBe "Ca marche"
+          contentAsString(future) mustBe "31PFP"
         }
       }
 
