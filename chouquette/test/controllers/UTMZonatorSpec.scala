@@ -27,7 +27,7 @@ class UTMZonatorSpec extends PlaySpec {
 
   "UTMZonator" should {
 
-    "found the major UTM zone from little data" in {
+    "found the major UTM zone" in {
       Server.withRouterFromComponents() { comp =>
         {
           // latLong 1
@@ -80,41 +80,6 @@ class UTMZonatorSpec extends PlaySpec {
 
           status(future) mustBe OK
           contentAsString(future) mustBe "abcde"
-        }
-      }
-    }
-
-    "found the major UTM zone from more data" in {
-      Server.withRouterFromComponents() { comp =>
-        {
-          case GET(p"/geocode/v1/json") => action(comp) {
-            Ok(Json.parse("""
-              {
-                "MGRS": "moar than 5 chars"
-              }
-            """))
-          }
-        }
-      } { implicit port =>
-        WsTestClient.withClient { client =>
-          val future =
-            new UTMZonator(
-              stubControllerComponents(),
-              client,
-              s"http://localhost:$port")
-            .zonator
-            .apply(FakeRequest[JsValue]("", "", Headers(),
-              body = Json.parse("""
-                [
-                  {"long": 2.2, "lat": 1.1},
-                  {"long": 3.3, "lat": 5.5},
-                  {"long": 15, "lat": 2},
-                  {"long": 30, "lat": 20}
-                ]
-              """)))
-
-          status(future) mustBe OK
-          contentAsString(future) mustBe "kaboum"
         }
       }
     }

@@ -72,8 +72,8 @@ class UTMZonator(
           .get
           .map(result => {
             val json = Json.parse(result.body)
-            val mgrs = (json \\ "MGRS").head
-            if (Json.stringify(mgrs) == Nil) {
+            val mgrs = (json \\ "MGRS").head 
+            if (!Option(Json.stringify(mgrs)).exists(_.trim.nonEmpty)) {
               throw new IllegalArgumentException("One of parameters is illegal.")
             } else {
               mgrs
