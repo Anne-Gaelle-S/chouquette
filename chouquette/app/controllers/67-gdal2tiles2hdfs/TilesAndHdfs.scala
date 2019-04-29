@@ -14,9 +14,6 @@ import chouquette.controllers.routes.{ TilesAndHdfs => ReverseTilesAndHdfs }
 import chouquette.services._
 
 
-case class HdfsServer(host: String, user: String, password: String)
-
-
 case class Auth(username: String, password: String)
 
 
@@ -41,9 +38,12 @@ trait Tileable {
   def cleanup(tileResult: TileResult): Unit
 }
 
-@ImplementedBy(classOf[HdfsPutter])
-trait HdfsPuttable {
-  def putHdfs(hdfsServer: HdfsServer, hdfsPath: String)
+
+case class SSHServer(host: String, user: String, password: String)
+
+@ImplementedBy(classOf[HDFSPutter])
+trait HDFSPuttable {
+  def putHDFS(sshServer: SSHServer, hdfsPath: String)
              (tileResult: TileResult): Future[String]
 }
 
@@ -53,10 +53,11 @@ class TilesAndHdfs @Inject()(
   jobQueuer: JobQueueable,
   downloader: Downloadable,
   tiler: Tileable,
-  hdfsPutter: HdfsPuttable,
+  hdfsPutter: HDFSPuttable,
   cc: ControllerComponents
 )(
-  implicit ec: ExecutionContext
+  implicit ec: ExecutionContext,
+  myEc: MyExecutionContext
 ) extends AbstractController(cc) {
 
   // POST /gdal2tiles2hdfs
@@ -71,8 +72,8 @@ class TilesAndHdfs @Inject()(
       hdfsPath <- (request.body \ "hdfsPath").validate[String]
     } yield {
       val auth = Auth(pepsUser, pepsPass)
-      val hdfsServer = HdfsServer(hdfsHost, hdfsUser, hdfsPass)
-      trySubmitJob(imageUrl, auth, hdfsServer, hdfsPass)
+      val sshServer = SSHServer(hdfsHost, hdfsUser, hdfsPass)
+      trySubmitJob(imageUrl, auth, sshServer, hdfsPass)
     })
       .map {
         case Success(res) => Created(Json.obj("status" -> JsString(res)))
@@ -91,35 +92,35 @@ class TilesAndHdfs @Inject()(
   def trySubmitJob(
       imageUrl: String,
       auth: Auth,
-      hdfsServer: HdfsServer,
+      sshServer: SSHServer,
       hdfsPath: String
   ): Try[String] =
     if (jobQueuer.canBeSubmitted) {
       val job = downloader
         .downloadImage(imageUrl, auth)
-        .flatMap(tileThenHdfs(hdfsServer, hdfsPath))
+        .flatMap(tileThenHdfs(sshServer, hdfsPath))
       val jobId = jobQueuer.submit(job)
       Success(ReverseTilesAndHdfs.status(jobId).path)
     } else Failure(new Exception("Couldn't submit job"))
 
   def tileThenHdfs(
-      hdfsServer: HdfsServer,
+      sshServer: SSHServer,
       hdfsPath: String
   )(
       downloadResult: DownloadResult
   ): Future[(MetaData, String)] =
     tiler.gdal2Tiles(downloadResult)
-      .flatMap(hdfs(hdfsServer, hdfsPath)(downloadResult))
+      .flatMap(hdfs(sshServer, hdfsPath)(downloadResult))
 
   def hdfs(
-      hdfsServer: HdfsServer,
+      sshServer: SSHServer,
       hdfsPath: String
   )(
       downloadResult: DownloadResult
   )(
       tileResult: TileResult
   ): Future[(MetaData, String)] = {
-    val res = hdfsPutter.putHdfs(hdfsServer, hdfsPath)(tileResult)
+    val res = hdfsPutter.putHDFS(sshServer, hdfsPath)(tileResult)
       .map((downloadResult.metaData, _))
     res.onComplete { _ =>
       downloader.cleanup(downloadResult)
