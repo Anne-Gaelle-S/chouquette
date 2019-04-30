@@ -26,7 +26,7 @@ trait JobQueueable {
 }
 
 @ImplementedBy(classOf[Downloader])
-// Downloads archive, extracts it, keep one image of it, warps it and gets
+// Downloads archive, extracts it, keeps one image of it, warps it and gets
 // metadata.
 trait Downloadable {
   def downloadImage(imageUrl: String, auth: Auth): Future[DownloadResult]
