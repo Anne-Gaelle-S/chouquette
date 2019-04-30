@@ -11,7 +11,7 @@ ENV BASEDIR=/chouquette
 
 RUN mkdir $BASEDIR
 WORKDIR $BASEDIR
-COPY ./chouquette .
+COPY . .
 RUN sbt clean stage
 
 ENTRYPOINT target/universal/stage/bin/chouquette

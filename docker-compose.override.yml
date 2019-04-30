@@ -3,11 +3,20 @@ version: '3'
 # development
 
 services:
-  chouquette:
-    container_name: chouquette
+  back:
+    container_name: chouquette-back
     volumes:
-      - ./chouquette:/chouquette
+      - ./back:/chouquette
     working_dir: /chouquette
     entrypoint: sbt
+    stdin_open: true
+    tty: true
+
+  front:
+    container_name: chouquette-front
+    volumes:
+      - ./front:/chouquette
+    working_dir: /chouquette
+    entrypoint: bash
     stdin_open: true
     tty: true

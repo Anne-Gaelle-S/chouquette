@@ -6,15 +6,20 @@
 
     docker-compose -f docker-compose.yml up
 
-Application avaible at: http://localhost:51264
+Backend avaible at: http://localhost:51264  
+Frontend avaible at: http://localhost:51265  
+(See `docker-compose.yml`.)
 
 
 ## Development
 
     docker-compose up
-    docker attach chouquette # sbt shell: run, test, ...
 
-Application avaible at: http://localhost:51264
+    # attach to backend:
+    docker attach chouquette-back # sbt shell: run, test, ...
+
+    # attach to frontend:
+    docker attach chouquette-front # bash: npm run start, test, ...
 
 
 ### Coverage

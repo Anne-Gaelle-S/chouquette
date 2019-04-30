@@ -9,11 +9,20 @@ networks:
         - subnet: 10.42.96.0/24
 
 services:
-  chouquette:
-    build: .
-    image: chouquette:latest
-    hostname: chouquette
+  back:
+    build: ./back
+    image: chouquette-back:latest
+    hostname: chouquette-back
     networks:
       - chouquette
     ports:
       - 51264:9000
+
+  front:
+    build: ./front
+    image: chouquette-front:latest
+    hostname: chouquette-front
+    networks:
+      - chouquette
+    ports:
+      - 51265:8080
