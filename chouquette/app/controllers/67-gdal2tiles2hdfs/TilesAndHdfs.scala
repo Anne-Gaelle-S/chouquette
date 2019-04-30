@@ -20,8 +20,9 @@ case class Auth(username: String, password: String)
 @ImplementedBy(classOf[JobQueuer])
 trait JobQueueable {
   def canBeSubmitted: Boolean
-  def submit(job: Future[(MetaData, String)]): String
+  def submit(job: Future[JobResult]): String
   def status(uuid: String): JobStatus
+  def removeFinishedJob(uuid: String): Unit
 }
 
 @ImplementedBy(classOf[Downloader])
@@ -108,7 +109,7 @@ class TilesAndHdfs @Inject()(
       hdfsPath: String
   )(
       downloadResult: DownloadResult
-  ): Future[(MetaData, String)] =
+  ): Future[JobResult] =
     tiler.gdal2Tiles(downloadResult)
       .flatMap(hdfs(sshServer, hdfsPath)(downloadResult))
 
@@ -119,9 +120,9 @@ class TilesAndHdfs @Inject()(
       downloadResult: DownloadResult
   )(
       tileResult: TileResult
-  ): Future[(MetaData, String)] = {
+  ): Future[JobResult] = {
     val res = hdfsPutter.putHDFS(sshServer, hdfsPath)(tileResult)
-      .map((downloadResult.metaData, _))
+      .map(JobResult(downloadResult.metaData, _))
     res.onComplete { _ =>
       downloader.cleanup(downloadResult)
       tiler.cleanup(tileResult)
@@ -130,7 +131,22 @@ class TilesAndHdfs @Inject()(
   }
 
 
-
   // GET /status/<jobId>
-  def status(jobId: String): Action[AnyContent] = ???
+  def status(jobId: String): Action[AnyContent] = Action {
+    jobQueuer.status(jobId) match {
+      case UnknownJob => NotFound(s"Unknown job: $jobId")
+      case Running => Accepted("Job not finished yet")
+      case complete: JobComplete => caseComplete(jobId, complete)
+    }
+  }
+
+  def caseComplete(jobId: String, complete: JobComplete): Result = {
+    jobQueuer.removeFinishedJob(jobId)
+    complete match {
+      case Failed(message) =>
+        InternalServerError(s"Job exited with error: $message")
+      case Finished(result) => Ok(Json.toJson(result))
+    }
+  }
+
 }

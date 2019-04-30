@@ -7,6 +7,8 @@ import play.api.libs.functional.syntax._
 case class MetaData(upperLeft: Point, lowerRight: Point)
 
 object MetaData {
+  implicit val metaDataWrites: Writes[MetaData] = Json.writes[MetaData]
+
   def fromJson(json: JsValue): Option[MetaData] =
     for {
       Seq(upperLeftX, upperLeftY) <-
@@ -19,3 +21,7 @@ object MetaData {
 
 
 case class Point(x: Double, y: Double)
+
+object Point {
+  implicit val pointWrites: Writes[Point] = Json.writes[Point]
+}

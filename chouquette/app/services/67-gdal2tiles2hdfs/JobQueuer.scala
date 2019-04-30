@@ -25,13 +25,13 @@ class JobQueuer(
   val queueMaxSize = _queueMaxSize
 
 
-  var runningJobs: Map[String, Future[(MetaData, String)]] = Map.empty
-  var finishedJobs: Map[String, Try[(MetaData, String)]] = Map.empty
+  var runningJobs: Map[String, Future[JobResult]] = Map.empty
+  var finishedJobs: Map[String, Try[JobResult]] = Map.empty
 
 
   def canBeSubmitted: Boolean = runningJobs.size < queueMaxSize
 
-  def submit(job: Future[(MetaData, String)]): String = {
+  def submit(job: Future[JobResult]): String = {
     val uuid = randomUUID().toString
     addRunningJob(uuid, job)
     job.onComplete { tryResult =>
@@ -48,13 +48,13 @@ class JobQueuer(
         .map(JobStatus.fromTry)
         .getOrElse(UnknownJob)
 
-  def addRunningJob(uuid: String, job: Future[(MetaData, String)]): Unit =
+  def addRunningJob(uuid: String, job: Future[JobResult]): Unit =
     runningJobs += ((uuid, job))
 
   def removeRunningJob(uuid: String): Unit =
     runningJobs -= uuid
 
-  def addFinishedJob(uuid: String, tryResult: Try[(MetaData, String)]): Unit =
+  def addFinishedJob(uuid: String, tryResult: Try[JobResult]): Unit =
     finishedJobs += ((uuid, tryResult))
 
   def removeFinishedJob(uuid: String): Unit =
